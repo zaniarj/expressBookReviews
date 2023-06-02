@@ -3,7 +3,7 @@ const jwt = require('jsonwebtoken');
 let books = require("./booksdb.js");
 const regd_users = express.Router();
 
-let users = [];
+let users = [{username:"user1", password:"password1"}];
 
 const isValid = (username)=>{ //returns boolean
 //write code to check is the username is valid
@@ -11,15 +11,15 @@ const isValid = (username)=>{ //returns boolean
       return user.username === username
     });
     if(userswithsamename.length > 0){
-      return true;
-    } else {
       return false;
+    } else {
+      return true;
     }
   }
 
 
 const authenticatedUser = (username,password)=>{ //returns boolean
-//write code to check if username and password match the one we have in records.
+
     let validator = users.filter((user)=>{
         return (user.username == username && user.password == password)
     });
@@ -35,7 +35,7 @@ regd_users.post("/login", (req,res) => {
     const username = req.body.username;
     const password = req.body.password;
     if (!username || !password) {
-        return res.status(404).json({message: "Error logging in"});
+        return res.status(400).json({message: "Error logging in"});
     }
    if (authenticatedUser(username,password)) {
       let accessToken = jwt.sign({
@@ -52,9 +52,37 @@ regd_users.post("/login", (req,res) => {
 
 // Add a book review
 regd_users.put("/auth/review/:isbn", (req, res) => {
-  //Write your code here
-  return res.status(300).json({message: "Yet to be implemented"});
+  const bookId = req.params.isbn; 
+  const review = req.body.review;
+  const username = req.session.authorization.username;
+  const reviews = books[bookId].reviews;
+  const title = books[bookId].title;
+    if (reviews.hasOwnProperty(username)){
+      reviews.username = review;
+      return res.status(200).send(`Review for ${title} Updated`);
+    }else{
+      reviews[username] = review
+      return res.status(200).send(`Review for ${title} Added`);
+    }
+  
+
 });
+regd_users.delete("/auth/review/:isbn", (req, res) => {
+  const bookId = req.params.isbn; 
+  const username = req.session.authorization.username;
+  const reviews = books[bookId].reviews;
+  const title = books[bookId].title;
+    if (reviews.hasOwnProperty(username)){
+      delete reviews[username];
+      return res.status(200).send(`Review for ${title} Deleted`);
+    }else{
+      return res.status(200).send(`No Review for ${title} Exists`);
+    }
+  
+
+});
+
+
 
 module.exports.authenticated = regd_users;
 module.exports.isValid = isValid;
